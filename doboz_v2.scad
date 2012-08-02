@@ -99,7 +99,7 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 //example usage
 
 //draw all
-doboz();
+//doboz();
 
 //x_end(half=BOTH);
 //mirror([1,0,0]) x_end(half=BACK);
@@ -116,8 +116,8 @@ doboz();
 
 //foot();
 
-//x_carriage();
-//x_carriage(side=RIGHT);
+x_carriage();
+//x_carriage(side=TIGHTENER);
 //translate([0,50,0])x_carriage(side=RIGHT);
 ///////////////////////////////
 // OpenSCAD SCRIPT
@@ -556,7 +556,6 @@ echo(block_width);
 				//for tightener only, not joiner
 				translate([0,length/2+hammer_len/2,0]) cube([5,hammer_len,height], center=true);
 			}
-
 			//buckle holes
 			for(i= [1,2,3])
 			translate([-width/2+buckle_hole_width*(0.5+i-1)+buckle_hole_dist*i,0,0]) cube([buckle_hole_width,length+xtra,belt_hole_length], center=true);
@@ -565,6 +564,41 @@ echo(block_width);
 			//hammer hole
 			rotate([-90,0,0]) translate([0,0,-length/2-xtra])cylinder(r=2.1, h =hammer_hole_len+xtra);
 		}
+	}
+
+	module belt_extender(pos=[0,0,0],  width=bearing_length ,thickness=3, length=belt_width+3*2, belt_hole_width=2, belt_hole_dist=3)
+	{
+		belt_width_extra=0.5;
+		belt_hole_length = belt_width + belt_width_extra;
+		//width = block_width *2 - belt_guides_width*2;
+
+		length_off = (length - belt_hole_length)/2;
+		top_offset=belt_hole_dist/2+belt_hole_width;
+
+		module _half()
+		{
+		difference()
+		{
+			union()
+			{
+				cube([width/2,thickness,length]);
+				//buckle holes top blocks
+				for(i= [0])
+				translate([top_offset+belt_hole_dist*i+belt_hole_width*i,thickness,0]) cube([belt_hole_dist,thickness+2,length]);
+		
+				
+			}//buckle holes lower
+			for(i= [0,1])
+			translate([belt_hole_dist/2+belt_hole_dist*i+belt_hole_width*i,-xtra/2,length_off]) cube([belt_hole_width,thickness+xtra,belt_hole_length]);
+			
+			//top hole
+			translate([0,thickness,length_off])  cube([width,thickness,belt_hole_length]);
+		}	
+		}
+
+
+		translate(pos) {_half();mirror([1,0,0]) _half();}
+		
 	}
 
 	module tightener_knob(pos=[0,0,0], dia=18, height=10, bolt_dia=4)
@@ -666,6 +700,16 @@ echo(block_width);
 							translate([block_height/2,0,0]) square([0.01,0.01],center=true);
 							translate([0,-belt_block_length/2,0]) square([belt_block_height,belt_block_length],center=true);
 						}
+					}		
+					translate([block_width/2-belt_guides_width,-length/2,0]) 
+					rotate( [0,90,0])
+					linear_extrude(height =belt_guides_width)
+					{
+						hull()
+						{
+							translate([block_height/2,0,0]) square([0.01,0.01],center=true);
+							translate([0,-belt_block_length/2,0]) square([belt_block_height,belt_block_length],center=true);
+						}
 					}				
 				}
 
@@ -680,7 +724,6 @@ echo(block_width);
 							translate([0,-front_trench_dia/2+0]) scale (v=[1,0.5,1]) circle(r = front_trench_dia/2);
 						}
 					}	
-
 
 
 				//lateral belt holes
@@ -705,7 +748,7 @@ echo(block_width);
 
 				//extra, for mounting
 				for(j= [-1,1])
-				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist[1]]) rotate([90,0,0]) mount_hole(length=block_length+xtra, variant=CAP);
+				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist[1]]) rotate([-90,0,0]) mount_hole(length=block_length+xtra, variant=NUT);
 			}
 		}
 
@@ -715,16 +758,16 @@ echo(block_width);
 
 	color(MECHA_COLOR)
 	{
-		//translate([0,0,-10])mount_hole(length=20,variant=CAP);
 		//translate(pos)
-		/*%rotate([-90,0,0])tightener_knob([0,0,-30]);
-			%belt_tightener([0,-11,0]);//0,-12,0
+		%rotate([90,0,0])tightener_knob([0,0,-30]);
+			%belt_extender([0,-13,-5]);
+			belt_extender([0,11,-5]);
 			//belt_tightener([0,11,0]);
 			//some helpers to visualize belts and bearings
-			for(i= [-1,1])for(j= [0,1]) 
-			%bearing(pos=[80*j-40,belt_bearings_y_dist/2*i,-belt_bearing_dims[2] /2], model=624, outline=false);
+			//for(i= [-1,1])for(j= [0,1]) 
+			//%bearing(pos=[80*j-40,belt_bearings_y_dist/2*i,-belt_bearing_dims[2] /2], model=624, outline=false);
 			translate([0,-belt_bearings_y_dist/2+belt_bearing_dims[2]+belt_thickness*1.5,0]) %cube([200,belt_thickness,belt_width], center=true);
-			translate([0,belt_bearings_y_dist/2-belt_bearing_dims[2]-belt_thickness*1.5,0]) %cube([200,belt_thickness,belt_width], center=true);*/
+			translate([0,belt_bearings_y_dist/2-belt_bearing_dims[2]-belt_thickness*1.5,0]) %cube([200,belt_thickness,belt_width], center=true);
 		if (side == LEFT)
 		{
 			rotate([0,90,0]) translate([-block_width/2,0,0])
@@ -739,11 +782,11 @@ echo(block_width);
 		}
 		else if(side==TIGHTENER)
 		{
-			rotate([90,0,0])  belt_tightener([0,11,0]);
+			rotate([90,0,0])  belt_extender();
 		}
 		else
 		{
-			mirror([0,1,0]) bearing_holder();
+			 mirror([0,1,0]) bearing_holder();
 		}
 	
 	}
