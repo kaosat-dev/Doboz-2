@@ -19,7 +19,7 @@ include <MCAD/nuts_and_bolts.scad>
 ////////////X CARRIAGE
 //TODO: fix payload mount holes distance to border -->DONE
 //TODO : fix belt idler (front) hole size -->DONE
-//TODO: fix tightening mechanism?
+//TODO: fix tightening mechanism?-->DONE?
 ///////////////////////////////
 // USER PARAMETERS
 ///////////////////////////////
@@ -27,8 +27,8 @@ $fs=0.2; // def 1, 0.2 is high res
 $fa=3;//def 12, 3 is very nice
 
 
-machine_length=455;
-machine_width=380;
+machine_length=380;//455;
+machine_width=455;//380;
 machine_height=445;
 angle_extrusions_width=30;
 angle_extrusions_thickness=2;
@@ -37,9 +37,8 @@ bottom_extrusions_width=50;
 z_axis_extrusion_width=40;
 
 y_rods_dia=8;
-//y_rods_dist=302;
-y_rods_dist=275+50;
-y_rods_len= 430;
+y_rods_dist=390;//325;
+y_rods_len= 325;//430;
 y_rods_z_dist=432;
 
 y_rod_holder_width=25;
@@ -64,8 +63,8 @@ x_end_length=25;
 
 z_rod_len=370;
 z_s_rods_dist=200;
-z_platform_with=260;
-z_platform_length=315;
+z_platform_with=315;//260;
+z_platform_length=255;//315;
 
 z_coupling_dia=20;
 z_coupling_height=25;
@@ -119,6 +118,8 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 x_carriage();
 //x_carriage(side=TIGHTENER);
 //translate([0,50,0])x_carriage(side=RIGHT);
+
+//tool_head([0,-28,0]);
 ///////////////////////////////
 // OpenSCAD SCRIPT
 ////////////////////////////////
@@ -518,7 +519,7 @@ echo(block_width);
 	
 	belt_bearing_dims=bearingDimensions(624);//inner, outer, width
 	belt_bearings_y_dist=belt_bearing_dims[1]+x_end_length+belt_thickness*2;
-	belt_guides_width =6;
+	belt_guides_width =4;
 
 	//for all belt holes
 	belt_width_extra=0.5;
@@ -527,15 +528,16 @@ echo(block_width);
 
 	//extra elements
 	payload_bolts_dia=4;
-	payload_holes_dist=[8,28]; //[x,y]
+	payload_holes_dist=28; //mounting holes distance for payload/toolhead
 
 	//general dimentions:
 	block_height=bearing_dia+rod_dist-4;
+	total_height=block_height+length;
 
 	//used only to generate  cut off "halves"
 	cutoff_dims=[block_width, length+50 ,block_height+50];
 
-	echo("block_height",block_height);
+	echo("carriage:","height",total_height, "width",block_width);
 	
 	
 	module belt_tightener(pos=[0,0,0],  length=3, height=belt_width+3*2, buckle_hole_width=2, buckle_hole_dist=3)
@@ -566,12 +568,58 @@ echo(block_width);
 		}
 	}
 
+
+	module belt_tightener2(pos=[0,0,0],  width=block_width-2*belt_guides_width ,thickness=3, length=belt_width+3*2, belt_hole_width=2, belt_hole_dist=2, bolt_dia=4)
+	{
+		belt_width_extra=0.5;
+		belt_hole_length = belt_width + belt_width_extra;
+		length_off = (length - belt_hole_length)/2;
+		top_offset=belt_hole_dist/2+belt_hole_width;
+
+		nut_height= METRIC_NUT_THICKNESS[bolt_dia]+tolerance;
+		nut_width= METRIC_NUT_AC_WIDTHS[bolt_dia]/2+tolerance;
+		top_bottom_thickness=2;
+		
+		total_thickness=top_bottom_thickness*2+nut_height+3;
+
+		top_layer_offset=top_bottom_thickness+nut_height+1;
+		module _half()
+		{
+		difference()
+		{
+			union()
+			{
+				cube([width/2,thickness,length]);
+				//buckle holes top blocks
+			
+				translate([0,0,0])cube([width/2-3.3,total_thickness,length]);
+				translate([0,top_layer_offset,0])cube([width/2+5,thickness,length]);
+				
+			}//buckle holes lower
+			for(i= [1])
+			translate([belt_hole_dist/2+belt_hole_dist*i+belt_hole_width*i,-xtra/2,length_off]) cube([belt_hole_width,thickness+xtra,belt_hole_length]);
+
+			for(i= [1,2])
+			translate([belt_hole_dist/2+belt_hole_dist*i+belt_hole_width*i,top_layer_offset-xtra/2,length_off]) cube([belt_hole_width,thickness+xtra,belt_hole_length]);
+
+
+			
+			//center hole
+			translate([0,-xtra/2,length/2]) rotate([-90,0,0]) cylinder(r=bolt_dia/2,  h=20);
+			//nut hole
+			translate([0,top_bottom_thickness,length/2]) rotate([0,90,90])nutHole(size=bolt_dia);
+			//nut side hole
+			translate([-xtra-0.43,top_bottom_thickness,-xtra/2]) cube([nut_width,nut_height,length/2]);
+
+		}	
+		}
+		translate(pos) {_half();mirror([1,0,0]) _half();}	
+	}
+
 	module belt_extender(pos=[0,0,0],  width=bearing_length ,thickness=3, length=belt_width+3*2, belt_hole_width=2, belt_hole_dist=3)
 	{
 		belt_width_extra=0.5;
 		belt_hole_length = belt_width + belt_width_extra;
-		//width = block_width *2 - belt_guides_width*2;
-
 		length_off = (length - belt_hole_length)/2;
 		top_offset=belt_hole_dist/2+belt_hole_width;
 
@@ -584,7 +632,7 @@ echo(block_width);
 				cube([width/2,thickness,length]);
 				//buckle holes top blocks
 				for(i= [0])
-				translate([top_offset+belt_hole_dist*i+belt_hole_width*i,thickness,0]) cube([belt_hole_dist,thickness+2,length]);
+				translate([top_offset+belt_hole_dist*i+belt_hole_width*i,thickness,0]) cube([belt_hole_dist,thickness+1,length]);
 		
 				
 			}//buckle holes lower
@@ -592,13 +640,10 @@ echo(block_width);
 			translate([belt_hole_dist/2+belt_hole_dist*i+belt_hole_width*i,-xtra/2,length_off]) cube([belt_hole_width,thickness+xtra,belt_hole_length]);
 			
 			//top hole
-			translate([0,thickness,length_off])  cube([width,thickness,belt_hole_length]);
+			translate([0,thickness,length_off])  cube([width,belt_hole_width,belt_hole_length]);
 		}	
 		}
-
-
-		translate(pos) {_half();mirror([1,0,0]) _half();}
-		
+		translate(pos) {_half();mirror([1,0,0]) _half();}	
 	}
 
 	module tightener_knob(pos=[0,0,0], dia=18, height=10, bolt_dia=4)
@@ -613,33 +658,6 @@ echo(block_width);
 			cylinder(r=bolt_dia/2, h=height+xtra);
 			 rotate([180,0,0]) translate([0,0,capHeight-xtra/2-height]) boltHole(size=bolt_dia, length =height+xtra);
 			translate([0,0,-xtra/2])nutHole(bolt_dia);
-		}
-	}
-
-	module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=10, nut_len=10,variant=BOTH)//pos it that of center
-	{
-		capRad = METRIC_NUT_AC_WIDTHS[dia]/2 + tolerance; 
-		nutRad=METRIC_NUT_AC_WIDTHS[dia]/2+tolerance; 
-
-		cap_pos = length/2-cap_len;
-		nut_pos = -length/2;
-
-		translate(pos);
-		{
-			cylinder(r=dia/2, h =length,center=true);
-		if (variant == CAP) 
-		{
-			translate([0,0,cap_pos])cylinder(r=capRad,h=cap_len);
-		}
-		else if(variant == NUT) 
-		{
-			translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
-		}
-		else
-		{
-			translate([0,0,cap_pos]) cylinder(r=capRad,h=cap_len);
-			translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
-		}	
 		}
 	}
 
@@ -664,14 +682,18 @@ echo(block_width);
 		belt_block_length = belt_thickness + 4;
 		belt_block_height= belt_width+3*2;
 
-		front_extra=8; ///needed to allow passage for belt
+		front_extra=10; ///needed to allow passage for belt
 		front_trench_dia=17;
+		front_trench_length=front_trench_dia;
 		back_trench_length=7;//for belt attachment inset
 
-		front_thickness=3;
+		front_thickness=2;
 		block_length=length+front_extra;
 		
 		roundings_r= length/2;
+
+		front_mount_holes_dist= (block_length/2+front_extra)/2;
+
 
 		translate(pos)
 		{
@@ -714,17 +736,16 @@ echo(block_width);
 				}
 
 				//front belt hole
-				translate([-(block_width+xtra)/2,17,0])
+				translate([-(block_width+xtra)/2,block_length/2+front_extra/2-front_thickness,0])
 				rotate( [0,90,0])
 					linear_extrude(height =block_width+xtra)
 					{
 						hull()
 						{
-							translate([0,-front_thickness])square([front_trench_dia,5],center=true);
-							translate([0,-front_trench_dia/2+0]) scale (v=[1,0.5,1]) circle(r = front_trench_dia/2);
+							square([front_trench_dia,0.01],center=true);
+							translate([0,-front_trench_dia/2]) scale (v=[1,0.5,1]) circle(r = front_trench_dia/2);
 						}
 					}	
-
 
 				//lateral belt holes
 				translate([0,belt_y_pos,0]) cube([block_width+xtra+10,belt_thickness,belt_hole_width], center=true);
@@ -732,13 +753,12 @@ echo(block_width);
 				translate([0,-6,0]) rotate([90,0,0]) cylinder(r1=2.5 , r2=3, h=10);
 				//translate([0,-length/2+back_trench_length/2-xtra/2-2.2,0])cube([block_width-2*belt_guides_width,back_trench_length+xtra,belt_block_height+0.5], center=true);
 
-				//bsdfsdfds
-				//translate([0,-18,0]) rotate([0,90,90])nutHole(size=4);
+		
 
 				//mount holes
 				rotate([0,-90,0])mount_hole(length=block_width+xtra);
-				translate([0,13,rod_dist/2]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
-				translate([0,13,-rod_dist/2]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
+				translate([0,front_mount_holes_dist,rod_dist/2+bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
+				translate([0,front_mount_holes_dist,-rod_dist/2-bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
 
 				//tightener knob hole
 				translate([0, -length/2,0]) rotate([90,0,0]) cylinder(r=2,h=10);
@@ -748,7 +768,7 @@ echo(block_width);
 
 				//extra, for mounting
 				for(j= [-1,1])
-				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist[1]]) rotate([-90,0,0]) mount_hole(length=block_length+xtra, variant=NUT);
+				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist]) rotate([-90,0,0]) mount_hole(length=block_length+xtra, variant=NUT);
 			}
 		}
 
@@ -760,9 +780,9 @@ echo(block_width);
 	{
 		//translate(pos)
 		%rotate([90,0,0])tightener_knob([0,0,-30]);
-			%belt_extender([0,-13,-5]);
-			belt_extender([0,11,-5]);
-			//belt_tightener([0,11,0]);
+			%belt_extender([0,-18,-6]);
+			%belt_tightener2([0,11,-5]);
+			
 			//some helpers to visualize belts and bearings
 			//for(i= [-1,1])for(j= [0,1]) 
 			//%bearing(pos=[80*j-40,belt_bearings_y_dist/2*i,-belt_bearing_dims[2] /2], model=624, outline=false);
@@ -782,7 +802,8 @@ echo(block_width);
 		}
 		else if(side==TIGHTENER)
 		{
-			rotate([90,0,0])  belt_extender();
+			//rotate([0,0,0])  belt_extender();
+			rotate([180,0,0])  belt_tightener2();
 		}
 		else
 		{
@@ -794,6 +815,29 @@ echo(block_width);
 	
 }
 
+
+module tool_head(pos=[0,0,0], carriage_width=24.7, carriage_height=64, carriage_border_extra=4,carriage_front=2, payload_holes_dist=28)
+{
+	length=8;
+	translate(pos)
+	difference()
+	{
+		union()
+		{
+			cube([carriage_width+carriage_border_extra*2,length,carriage_height],center=true);
+			difference()
+			{
+				cylinder(r=carriage_width/2+carriage_border_extra, h =30);
+				cube([15,15,30]);
+			}
+		}
+
+		translate([0,4.1,0]) cube([carriage_width,carriage_front,carriage_height+xtra],center=true);
+		for(j= [-1,1])
+		translate([0,0,j*payload_holes_dist]) rotate([90,0,0]) mount_hole(length=length+xtra, variant=CAP,cap_len=3);
+
+	}
+}
 
 module x_end(pos=[0,0,0], rod_dia=8, rod_dist=30, width=16, length=26, walls_thickness=4, y_bearing_dia=15, y_bearing_length=24, y_bearing_cap_id=14.5,y_arm_safe_dist= 4, x_arm_extra_distance=8,bearing_holder_thickness=5, belt_thickness=1.5, belt_width=6,x_axis_top_offset= 0,half=BOTH)
 {
@@ -1063,3 +1107,32 @@ module belt(pos=[0,0,0], height=6, length=405, pulley_dia=20, thickness=1.5)
 		}
 	}*/
 }
+
+
+///////////////////UTILITIES
+module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=10, nut_len=10,variant=BOTH)//pos it that of center
+	{
+		capRad = METRIC_NUT_AC_WIDTHS[dia]/2 + tolerance; 
+		nutRad=METRIC_NUT_AC_WIDTHS[dia]/2+tolerance; 
+
+		cap_pos = length/2-cap_len;
+		nut_pos = -length/2;
+
+		translate(pos);
+		{
+			cylinder(r=dia/2, h =length,center=true);
+		if (variant == CAP) 
+		{
+			translate([0,0,cap_pos])cylinder(r=capRad,h=cap_len);
+		}
+		else if(variant == NUT) 
+		{
+			translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
+		}
+		else
+		{
+			translate([0,0,cap_pos]) cylinder(r=capRad,h=cap_len);
+			translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
+		}	
+		}
+	}
