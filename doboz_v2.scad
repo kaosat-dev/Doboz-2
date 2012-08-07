@@ -20,6 +20,13 @@ include <MCAD/nuts_and_bolts.scad>
 //TODO: fix payload mount holes distance to border -->DONE
 //TODO : fix belt idler (front) hole size -->DONE
 //TODO: fix tightening mechanism?-->DONE?
+//TODO: print & test single bearing version -->DONE 
+////////////Z PLATFORM
+//TODO: fix all the "back" elements correctly (not just thrown together like right now)
+//TODO: cleanup/refactor all elements
+//TODO: improve mounting arms
+//TODO: decide on width vs length structure
+
 ///////////////////////////////
 // USER PARAMETERS
 ///////////////////////////////
@@ -62,7 +69,7 @@ x_end_length=25;
 /////////////////////////////
 
 z_rod_len=370;
-z_s_rods_dist=200;
+z_s_rods_dist=180;
 z_platform_with=315;//260;
 z_platform_length=255;//315;
 
@@ -98,7 +105,7 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 //example usage
 
 //draw all
-//doboz();
+doboz();
 
 //x_end(half=BOTH);
 //mirror([1,0,0]) x_end(half=BACK);
@@ -115,7 +122,7 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 
 //foot();
 
-x_carriage();
+//x_carriage(side=RIGHT);
 //x_carriage(side=TIGHTENER);
 //translate([0,50,0])x_carriage(side=RIGHT);
 
@@ -127,7 +134,7 @@ x_carriage();
 module doboz()
 {
 	belts_z_pos = machine_height-bottom_extrusions_width+pulley_feet_height+pulley_height/2;
-	x_belt_len=285;
+	x_belt_len=x_rods_len+20;//285;
 
 	//rods
 	for(i= [-1,1])
@@ -175,7 +182,7 @@ module doboz()
 	
 
 	//platform
-	color([ 0.6, 0.6, 0.6]) translate([0,20,machine_height/2+20])  cube([z_platform_with,z_platform_length,4],center=true);
+	//color([ 0.6, 0.6, 0.6]) translate([0,20,machine_height/2+50])  cube([z_platform_with,z_platform_length,4],center=true);
 	//coupling
 	color([ 0.6, 0.6, 0.6]) translate([0,machine_length/2-bottom_extrusions_width/2,370])  cylinder(r=z_coupling_dia/2, h=z_coupling_height);
 
@@ -285,18 +292,13 @@ module doboz()
 	
 }
 
-module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_rod_dia=8, s_rods_dia=8, srods_dist=140, bearing_dia=15, bearing_length=24, bearing_id=9,walls_thickness=4)
+module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_rod_dia=8, s_rods_dia=8, srods_dist=180, bearing_dia=15, bearing_length=24, bearing_id=9,walls_thickness=4)
 {
 	t_rod_height=30;
+	t_rod_dia_extra=0.5;
+	arm_thickness=5;
 
-	module mount_arms(pos=[0,0,0], width=40)
-	{
-		translate(pos)
-		{
-			cube([width,len,1.5],center=true);
-			translate([-width/2,0,-width/2])cube([1.5,len,width],center=true);
-		}
-	}
+	real_center=-z_platform_length/2-15;
 
 	module sr_holders(pos=[0,0,0], height=15, mount_bolt_dia=3)
 	{
@@ -312,44 +314,197 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		}
 	}
 
-	module central(pos=[0,0,0],spring_height=10)
+	module nut_holder(pos=[0,0,0],spring_height=10, top_bottom_thickness=5)
 	{
 		nutRadius = METRIC_NUT_AC_WIDTHS[t_rod_dia]/2+tolerance;
 		nutHeight = METRIC_NUT_THICKNESS[t_rod_dia]+tolerance;
-		height=nutHeight*2+spring_height;
+		
+		inner_height=nutHeight*2+spring_height;
+		height=inner_height+top_bottom_thickness*2;
+		//just a test
+		height= bearing_length*2;
+		od = nutRadius*2 + walls_thickness*2;
+
 		translate(pos)
-		cylinder(r=nutRadius/2+walls_thickness, h=height);
+		translate([0,0,top_bottom_thickness])
+		{
+		difference()
+		{
+			union()
+			{
+				translate([0,0,-top_bottom_thickness])cylinder(r=od/2, h=height);
+				translate([0,0,18])cube([180,od,height],center=true);
+
+				//test, for assembly
+				translate([50,0,-top_bottom_thickness])cylinder(r=6, h=height);
+				//test, for assembly
+				translate([-50,0,-top_bottom_thickness])cylinder(r=6, h=height);
+
+			}
+
+			translate([0,0,-xtra/2])cylinder(r=nutRadius, h=inner_height+xtra, $fn=6);
+
+			translate([0,0,-top_bottom_thickness-xtra/2])cylinder(r=t_rod_dia/2+t_rod_dia_extra, h=height+top_bottom_thickness*2);
+			//cut off
+			translate([-od/2,nutRadius-2,-xtra/2]) cube([od,od+walls_thickness,inner_height+xtra]);	
+			//back cut off
+			translate([-nutRadius,0,-xtra/2]) cube([nutRadius*2,nutRadius*2+walls_thickness,inner_height+xtra]);	
+
+
+			//arm holes
+			translate([50,0,-top_bottom_thickness])cylinder(r=2, h=height+xtra);
+			translate([-50,0,-top_bottom_thickness])cylinder(r=2, h=height+xtra);
+
+			translate([0,0,0])
+			linear_extrude(height =height+xtra)
+			{
+				hull()
+				{
+					translate([45,0])	square([0.01,10],center=true);
+					translate([20,0])	circle(r=5); 
+				}
+			}
+			translate([0,0,0])
+			linear_extrude(height =height+xtra)
+			{
+				hull()
+				{
+					translate([-45,0])	square([0.01,10],center=true);
+					translate([-20,0])circle(r=5); 
+				}
+			}
+
+			///
+				linear_extrude(height =height+xtra)
+			{
+				hull()
+				{
+					translate([55,0])	square([0.01,10],center=true);
+					translate([75,0])	circle(r=5); 
+				}
+			}
+
+			linear_extrude(height =height+xtra)
+			{
+				hull()
+				{
+					translate([-55,0])	square([0.01,10],center=true);
+					translate([-75,0])	circle(r=5); 
+				}
+			}
+
+		
+		}
+
+		%cylinder(r=nutRadius, h=nutHeight, $fn=6);
+		translate([0,0,nutHeight+spring_height]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
+		}
 	}
 
 	module linear_bearing_holders(pos=[0,0,0], z_dist=60)
 	{
-		//height=z_dist+bearing_length/2;
-		height= bearing_length*2+z_dist;
+		height= bearing_length*2;
+		arm_holder_length=50;
+		arm_holder_width=arm_thickness+2*walls_thickness;
+		//arm_holder_width= bearing_dia+walls_thickness*2;
+		arm_length =260;
+
 		translate(pos)
 		difference()
 		{
-		 	cylinder(r=bearing_dia/2+walls_thickness, h=height);
-		 	cylinder(r=bearing_dia/2, h=height+xtra,center=true);
+			% translate([arm_thickness/2,-arm_length-walls_thickness*3,-xtra/2]) 
+			rotate([0,-90,0])linear_extrude(height =arm_thickness)
+			{
+				hull()
+				{
+					translate([30,0])	square([height-30,0.01]);
+					translate([0,arm_length]) 	square([height,0.01]);
+				}
+			}
+			
+		 	union()
+			{
+				
+			linear_extrude(height =height)
+			{
+				hull()
+				{
+					translate([0,-arm_holder_length])	square([arm_holder_width,0.01],center=true);
+					translate([0,0]) circle(r=bearing_dia/2+walls_thickness); 
+				}
+			}
+
+			}
+
+			//arm notches
+			translate([-arm_thickness/2,-arm_holder_length-walls_thickness*3,-xtra/2])cube([arm_thickness,arm_holder_length,height+xtra]);
+
+		 	rotate([0,90,0])bearing_retainer_hole([-height/2,0,0],height);//cylinder(r=bearing_dia/2, h=height+xtra,center=true);
+			
+			//arm mount holes
+			translate([0,-15,height/2]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
+			translate([0,-35,height/2]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
+		}
+	}
+
+	module platform_adjuster(pos=[0,0,0], length=30, width=10, height=8, bolt_dia=4, base_width=10, base_length=35, mount_pos=[55,-25],side=LEFT)
+	{
+	
+		module _adjuster()
+		{
+			difference()
+			{
+				union()
+				{
+				linear_extrude(height =height)
+				{
+					hull()
+					{
+						square([base_width,base_length]);
+						translate(mount_pos) circle(r=bolt_dia/2+walls_thickness); 	
+						//translate([0,length]) circle(r=bolt_dia/2+walls_thickness); 
+					}
+				}
+				translate([0,0,-height/2-5]) cube([base_width,base_length,10]);
+				}
+				//platform mount hole
+				translate([mount_pos[0], mount_pos[1], -xtra/2]) cylinder(r=bolt_dia/2, h=height+xtra); 	
+				
+				//adjuster mount holes
+				translate([0,5,-height/2]) rotate([0,90,0])	cylinder(r=bolt_dia/2, h=base_width+xtra); 
+				//adjuster mount holes
+				translate([0,30,-height/2]) rotate([0,90,0])	cylinder(r=bolt_dia/2, h=base_width+xtra); 	
+			}
+		}
+
+		translate(pos)
+		if (side ==LEFT)
+		{
+			_adjuster();
+		}
+		else if (side == RIGHT)
+		{	mirror([1,0,0])_adjuster();
 		}
 	}
 
 	color(MECHA_COLOR)
 	{
-		difference()
-		{
-		 	cube([width,20,t_rod_height],center=true);	//cylinder(r=t_rod_dia/2+walls_thickness/2, h=t_rod_height);
-		 	cylinder(r=t_rod_dia/2, h=t_rod_height+xtra,center=true);
-		}
-		for(i= [-1,1])	linear_bearing_holders([i*srods_dist/2,0,-40]);
+		
+		for(i= [-1,1])	linear_bearing_holders([i*srods_dist/2,0,0]);
 
-		for(i= [-1,1])	mirror([i+1,0,0]) mount_arms([srods_dist/2+10,-150,13]);
-
+	
 		for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
 
-		 //sr_holders([srods_dist/2,0,-200]);
+		 platform_adjuster([92,-235,40]);
+		 platform_adjuster([-92,-235,40], side=RIGHT);
+		mirror([0,1,0] )platform_adjuster([92,50,40]);
+		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);
 
-		central([0,0,10]);
+
+		nut_holder([0,0,0]);
 	}
+
+	% color([ 0.6, 0.6, 0.6]) translate([0,-z_platform_length/2-15,50])  cube([z_platform_with,z_platform_length,4],center=true);
 }
 
 
@@ -508,6 +663,7 @@ module x_carriage(bearing_id=8, rod_dist=30, width=40, length=30, height=50, bea
 	belt_tensionner_holder_thickness=4;
 	belt_tensionner_holder_dia=7;
 	belt_tensionner_bolt_dia=4;
+	bearings_hole_extra= 0.15;
 
 
 	end_caps_length= 0.7;//for bearing retaining
@@ -661,22 +817,8 @@ echo(block_width);
 		}
 	}
 
-	module bearing_retainer_hole(pos=[0,0,0], width=10, bearing_dia=8, bearing_h_extra=0, bearing_lng=10, cap_dia=10, cap_lng=0.5)
-	{
-		bearing_r=bearing_dia/2+bearing_h_extra;
-		translate(pos)
-		rotate([0,90,0])
-		{
-			//bearing hole
-			translate([0,0,0]) cylinder(r=bearing_r, h=bearing_lng, center=true);
-			translate([0,0, width/2-cap_lng-xtra/2])cylinder(r2=cap_dia/2, r1 =bearing_r , h=cap_lng+xtra);
-			translate([0,0,-width/2+cap_lng+xtra/2]) mirror([0,0,1])cylinder(r2=cap_dia/2, r1 =bearing_r , h=cap_lng+xtra);
-		}
-	}
-
 	module bearing_holder(pos=[0,0,0])
 	{
-		bearings_hole_extra = 0;
 		bearing_r=bearing_dia/2+bearings_hole_extra;
 
 		belt_block_length = belt_thickness + 4;
@@ -756,15 +898,16 @@ echo(block_width);
 		
 
 				//mount holes
-				rotate([0,-90,0])mount_hole(length=block_width+xtra);
-				translate([0,front_mount_holes_dist,rod_dist/2+bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
-				translate([0,front_mount_holes_dist,-rod_dist/2-bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra);
+				rotate([0,-90,0])mount_hole(length=block_width+xtra,cap_len=5,nut_len=5);
+				translate([0,front_mount_holes_dist,rod_dist/2+bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra,cap_len=5,nut_len=5);
+				translate([0,front_mount_holes_dist,-rod_dist/2-bearing_dia/3]) rotate([0,-90,0])mount_hole(length=block_width+xtra,cap_len=5,nut_len=5);
 
 				//tightener knob hole
 				translate([0, -length/2,0]) rotate([90,0,0]) cylinder(r=2,h=10);
 
 				//bearing holes
-				for(i= [-1,1]) bearing_retainer_hole([0,0,rod_dist/2*i], block_width,bearing_dia,bearings_hole_extra,bearing_length,bearing_cap_id,end_caps_length);
+				//for(i= [-1,1]) bearing_retainer_hole([0,0,rod_dist/2*i], block_width,bearing_dia,bearings_hole_extra,bearing_length,bearing_cap_id,end_caps_length);
+				for(i= [-1,1]) bearing_retainer_hole([0,0,rod_dist/2*i], block_width);
 
 				//extra, for mounting
 				for(j= [-1,1])
@@ -1134,5 +1277,19 @@ module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=10, nut_len=10,variant=
 			translate([0,0,cap_pos]) cylinder(r=capRad,h=cap_len);
 			translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
 		}	
+		}
+	}
+
+module bearing_retainer_hole(pos=[0,0,0], length=10, bearing_dia=15, bearing_r_extra=0.15, cap_dia=14.5, cap_lng=0.7)
+	{
+		bearing_r=bearing_dia/2+bearing_r_extra;
+		lng_diff = length -(cap_lng*2);
+		translate(pos)
+		rotate([0,90,0])
+		{
+			//bearing hole
+			translate([0,0,0]) cylinder(r=bearing_r, h=lng_diff, center=true);
+			translate([0,0, length/2-cap_lng-xtra/2])cylinder(r2=cap_dia/2, r1 =bearing_r , h=cap_lng+xtra);
+			translate([0,0,-length/2+cap_lng+xtra/2]) mirror([0,0,1])cylinder(r2=cap_dia/2, r1 =bearing_r , h=cap_lng+xtra);
 		}
 	}
