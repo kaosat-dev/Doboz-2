@@ -105,7 +105,7 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 //example usage
 
 //draw all
-doboz();
+//doboz();
 
 //x_end(half=BOTH);
 //mirror([1,0,0]) x_end(half=BACK);
@@ -116,7 +116,7 @@ doboz();
 
 
 
-//z_platform_holder();
+z_platform_holder();
 //%rotate([-90,0,0])y_end();
 //rotate([-90,0,0])y_end2();
 
@@ -314,7 +314,24 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		}
 	}
 
-	module nut_holder(pos=[0,0,0],spring_height=10, top_bottom_thickness=5)
+
+	module _hollowing(pos=[0,0,0], length=20, width=10, height=20 )
+		{
+			translate(pos)
+			difference()
+			{
+			linear_extrude(height =height)
+			{
+				hull()
+				{
+					translate([length,0])	square([0.01,width],center=true);
+					translate([width/2,0])circle(r=width/2); 
+				}
+			}
+			}
+		}
+
+	module center_block(pos=[0,0,0],spring_height=10, top_bottom_thickness=5, mount_length=50, mount_overlap=30, mount_bolt_dia=4)
 	{
 		nutRadius = METRIC_NUT_AC_WIDTHS[t_rod_dia]/2+tolerance;
 		nutHeight = METRIC_NUT_THICKNESS[t_rod_dia]+tolerance;
@@ -324,84 +341,78 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		//just a test
 		height= bearing_length*2;
 		od = nutRadius*2 + walls_thickness*2;
+		echo("center width", od, "height",height);
 
-		translate(pos)
-		translate([0,0,top_bottom_thickness])
+		mount_bolt_dist=mount_length;//+od/4;
+		hollowing_lng= mount_bolt_dist-mount_bolt_dia/2-od/2-walls_thickness/2;
+
+		components_lng= 0;
+
+		
+
+		module _nut_hole(pos=[0,0,0])
 		{
-		difference()
+			translate(pos)
+			{
+			//central hole
+			cylinder(r=t_rod_dia/2+t_rod_dia_extra, h=height+top_bottom_thickness*2,center=true);
+			translate([0,0,-inner_height/2])
+			{
+			//nut emplacement
+			cylinder(r=nutRadius, h=inner_height+xtra, $fn=6);
+			
+			//back cut off
+			translate([-nutRadius,0,0]) cube([nutRadius*2,nutRadius*2+walls_thickness,inner_height+xtra]);	
+			}
+			}
+		}
+
+
+		module _half()
+		{
+			difference()
 		{
 			union()
 			{
-				translate([0,0,-top_bottom_thickness])cylinder(r=od/2, h=height);
-				translate([0,0,18])cube([180,od,height],center=true);
-
+				cylinder(r=od/2, h=height);
+				
 				//test, for assembly
-				translate([50,0,-top_bottom_thickness])cylinder(r=6, h=height);
+				//translate([50,0,-top_bottom_thickness])cylinder(r=6, h=height);
 				//test, for assembly
-				translate([-50,0,-top_bottom_thickness])cylinder(r=6, h=height);
-
+				//translate([-50,0,-top_bottom_thickness])cylinder(r=6, h=height);
+			
+				//mount arm
+				translate([0,-od/2,0])cube([mount_length,od,height]);
+				translate([mount_length,0,0])cylinder(r=od/2, h=height);
 			}
 
-			translate([0,0,-xtra/2])cylinder(r=nutRadius, h=inner_height+xtra, $fn=6);
+			_nut_hole([0,0,height/2]);
+	
+			//mount assembly holes
+			translate([mount_bolt_dist,0,-xtra/2])cylinder(r=mount_bolt_dia/2, h=height+xtra);
+			
+			//inner holes to make it all lighter, easier to print
+			_hollowing([od/2,0,-xtra/2], length=hollowing_lng,height=height+xtra);
+			
+			_hollowing([mount_length+od/2-mount_overlap,-xtra/2,height/2], length=mount_overlap+xtra, width=od+xtra, height=height/2+xtra); 
+			//translate([mount_length-mount_overlap,-od/2-xtra/2,height/2]) cube([mount_overlap+xtra,od+xtra,height/2+xtra]);
+			
+		}
 
-			translate([0,0,-top_bottom_thickness-xtra/2])cylinder(r=t_rod_dia/2+t_rod_dia_extra, h=height+top_bottom_thickness*2);
-			//cut off
-			translate([-od/2,nutRadius-2,-xtra/2]) cube([od,od+walls_thickness,inner_height+xtra]);	
-			//back cut off
-			translate([-nutRadius,0,-xtra/2]) cube([nutRadius*2,nutRadius*2+walls_thickness,inner_height+xtra]);	
+		}
 
+		translate(pos)
+		_half();
+		mirror([1,0,0]) _half();
+		//_hollowing([0,0,-xtra/2]);
+			
 
-			//arm holes
-			translate([50,0,-top_bottom_thickness])cylinder(r=2, h=height+xtra);
-			translate([-50,0,-top_bottom_thickness])cylinder(r=2, h=height+xtra);
-
-			translate([0,0,0])
-			linear_extrude(height =height+xtra)
-			{
-				hull()
-				{
-					translate([45,0])	square([0.01,10],center=true);
-					translate([20,0])	circle(r=5); 
-				}
-			}
-			translate([0,0,0])
-			linear_extrude(height =height+xtra)
-			{
-				hull()
-				{
-					translate([-45,0])	square([0.01,10],center=true);
-					translate([-20,0])circle(r=5); 
-				}
-			}
-
-			///
-				linear_extrude(height =height+xtra)
-			{
-				hull()
-				{
-					translate([55,0])	square([0.01,10],center=true);
-					translate([75,0])	circle(r=5); 
-				}
-			}
-
-			linear_extrude(height =height+xtra)
-			{
-				hull()
-				{
-					translate([-55,0])	square([0.01,10],center=true);
-					translate([-75,0])	circle(r=5); 
-				}
-			}
-
+		//%translate([0,0,top_bottom_thickness])  cylinder(r=nutRadius, h=nutHeight, $fn=6);
+		//translate([0,0,nutHeight+spring_height+top_bottom_thickness]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
 		
-		}
-
-		%cylinder(r=nutRadius, h=nutHeight, $fn=6);
-		translate([0,0,nutHeight+spring_height]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
-		}
 	}
 
-	module linear_bearing_holders(pos=[0,0,0], z_dist=60)
+	module linear_bearing_holders(pos=[0,0,0], mount_length=50, mount_overlap=20, mount_bolt_dia=4, mount_bolt_dist=45, mount_width=23.0002, side=LEFT)
 	{
 		height= bearing_length*2;
 		arm_holder_length=50;
@@ -409,31 +420,29 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		//arm_holder_width= bearing_dia+walls_thickness*2;
 		arm_length =260;
 
-		translate(pos)
+		mount_bolt_dist=-mount_length;//-mount_width/4;
+
+		module _holder()
+		{
 		difference()
 		{
-			% translate([arm_thickness/2,-arm_length-walls_thickness*3,-xtra/2]) 
-			rotate([0,-90,0])linear_extrude(height =arm_thickness)
-			{
-				hull()
-				{
-					translate([30,0])	square([height-30,0.01]);
-					translate([0,arm_length]) 	square([height,0.01]);
-				}
-			}
+			% translate([-arm_thickness/2,-arm_length-walls_thickness*3,-xtra/2])  cube([arm_thickness,arm_length,height]);
 			
 		 	union()
 			{
-				
-			linear_extrude(height =height)
-			{
-				hull()
+				//arm holder
+				linear_extrude(height =height)
 				{
-					translate([0,-arm_holder_length])	square([arm_holder_width,0.01],center=true);
-					translate([0,0]) circle(r=bearing_dia/2+walls_thickness); 
+					hull()
+					{
+						translate([0,-arm_holder_length])	square([arm_holder_width,0.01],center=true);
+						translate([0,0]) circle(r=bearing_dia/2+walls_thickness); 
+					}
 				}
-			}
-
+				//mount stuff
+				translate([-mount_length,-mount_width/2,0])cube([mount_length,mount_width,height]);
+				translate([-mount_length,0,0])cylinder(r=mount_width/2, h=height);
+				
 			}
 
 			//arm notches
@@ -444,6 +453,22 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			//arm mount holes
 			translate([0,-15,height/2]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
 			translate([0,-35,height/2]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
+
+			//mount elems cutoff
+			rotate([0,0,180])_hollowing([mount_length-mount_width/2,-xtra/2,-xtra/2], length=mount_overlap+xtra, width=mount_width+xtra, height=height/2+xtra); 
+			//mount assembly holes
+			translate([mount_bolt_dist,0,-xtra/2])cylinder(r=mount_bolt_dia/2, h=height+xtra);
+
+		}
+		}
+
+		
+		if (side ==LEFT)
+		{
+			translate(pos)_holder();
+		}
+		else if (side == RIGHT)
+		{	mirror([1,0,0])translate(pos)_holder();
 		}
 	}
 
@@ -490,21 +515,22 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	color(MECHA_COLOR)
 	{
 		
-		for(i= [-1,1])	linear_bearing_holders([i*srods_dist/2,0,0]);
+		linear_bearing_holders([srods_dist/2+10,0,2],mount_length=srods_dist/4);
+		linear_bearing_holders([srods_dist/2+10,0,2],mount_length=srods_dist/4, side=RIGHT);
 
 	
-		for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
+	//	for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
 
-		 platform_adjuster([92,-235,40]);
+		 /*platform_adjuster([92,-235,40]);
 		 platform_adjuster([-92,-235,40], side=RIGHT);
 		mirror([0,1,0] )platform_adjuster([92,50,40]);
-		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);
+		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);*/
 
 
-		nut_holder([0,0,0]);
+		center_block([0,0,0],mount_length=srods_dist/4);
 	}
 
-	% color([ 0.6, 0.6, 0.6]) translate([0,-z_platform_length/2-15,50])  cube([z_platform_with,z_platform_length,4],center=true);
+	//% color([ 0.6, 0.6, 0.6]) translate([0,-z_platform_length/2-15,50])  cube([z_platform_with,z_platform_length,4],center=true);
 }
 
 
