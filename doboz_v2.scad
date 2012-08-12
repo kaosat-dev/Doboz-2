@@ -22,11 +22,19 @@ include <MCAD/nuts_and_bolts.scad>
 //TODO: fix tightening mechanism?-->DONE?
 //TODO: print & test single bearing version -->DONE 
 ////////////Z PLATFORM
-//TODO: fix all the "back" elements correctly (not just thrown together like right now)
-//TODO: cleanup/refactor all elements
-//TODO: improve mounting arms
+//TODO: fix all the "back" elements correctly (not just thrown together like right now)-->DONE
+//TODO: cleanup/refactor all elements-->DONE
+//TODO: improve mounting arms-->DONE
+//TODO: fix nut hole cap/nut heights (should default to actual nut neight/ cap height)-->DONE
+////////////GENERAL
 //TODO: decide on width vs length structure
 
+//INFO ON CURRENT PROTOTYPE MACHINE
+//max X movement:220
+//max Y movement:330
+//Target max X:250
+//Target max Y:300
+//Max gain on X by modyfing X ends : 18 *2
 ///////////////////////////////
 // USER PARAMETERS
 ///////////////////////////////
@@ -98,6 +106,9 @@ TIGHTENER="tght";
 //for mount holes module
 CAP = "cap";
 NUT = "nut";
+
+//other
+NAN="nan";
 
 MECHA_COLOR =[ 1.0, 0.46, 0.2 ];//[ 1.0, 0.85, 0.0 ]; //
 STRUCT_COLOR =[ 0.95, 0.95, 0.95];
@@ -297,9 +308,11 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 {
 	t_rod_height=30;
 	t_rod_dia_extra=0.5;
-	arm_thickness=5;
+	arm_thickness=5.05;
 	mount_overlap=10;
 	real_center=-z_platform_length/2-15;
+
+	linear_bearings_mount_length=20;
 
 	module sr_holders(pos=[0,0,0], height=15, mount_bolt_dia=3)
 	{
@@ -379,7 +392,7 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			}
 			_nut_hole([0,0,height/2]);
 			//mount assembly holes
-			rotate([180,0,0])mount_hole([mount_bolt_dist,0,-height/2+xtra/4], dia=4, length=height+xtra, nut_len=5,variant=CAP);
+			rotate([180,0,0])mount_hole([mount_bolt_dist,0,-height/2+xtra/4], dia=4, length=height+xtra, cap_len=5,variant=CAP);
 			
 			//inner holes to make it all lighter, easier to print
 			_hollowing([od/2,0,-xtra/2], length=hollowing_lng,height=height+xtra);
@@ -395,17 +408,19 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		//translate([0,0,nutHeight+spring_height+top_bottom_thickness]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
 	}
 
-	module linear_bearing_holders(pos=[0,0,0], mount_length=50, mount_overlap=15, mount_bolt_dia=4, mount_bolt_dist=45, mount_width=23.0002, side=LEFT)
+	module linear_bearing_holders(pos=[0,0,0], mount_length=50, mount_overlap=15, mount_bolt_dia=4, mount_width=23.0002, side=LEFT)
 	{
 		height= bearing_length*2;
 		arm_holder_length=50;
-		arm_holder_width=arm_thickness+2*walls_thickness;
+		arm_holder_width=arm_thickness+2*walls_thickness+2;
 		//arm_holder_width= bearing_dia+walls_thickness*2;
 		arm_length =260;
 
 		mount_total_lng=mount_length+mount_overlap/2;
 		mount_bolt_dist=-mount_total_lng+mount_width/4;
 		
+		arm_mount_hole_pos=0;
+
 
 		module _holder()
 		{
@@ -431,18 +446,18 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			//arm notches
 			translate([-arm_thickness/2,-arm_holder_length-walls_thickness*3,-xtra/2])cube([arm_thickness,arm_holder_length,height+xtra]);
 			//arm additional cut off
-			rotate([90,180,90])_hollowing([mount_width/2,-xtra/2,-10], length=40, width=height, height=arm_holder_width*2+xtra); 
-
+			rotate([90,180,90])_hollowing([mount_width/2,-xtra/2,-arm_holder_width], length=40, width=height, height=arm_holder_width*2+xtra); 
+			//bearings hole
 		 	rotate([0,90,0])bearing_retainer_hole([-height/2,0,0],height);//cylinder(r=bearing_dia/2, h=height+xtra,center=true);
 			
 			//arm mount holes
-			translate([0,-15,height/2]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
-			translate([0,-35,height/1.3]) rotate([0,90,0])cylinder(r=2, h=50,center=true);
+			rotate([0,90,0])mount_hole([-height+height/4, -42,0], dia=4, length=arm_holder_width*1.5+xtra, nut_len=5, cap_len=5);
+			rotate([0,90,0])mount_hole([-height+height/4,-22,0], dia=4, length=arm_holder_width*1.6+xtra, nut_len=5, cap_len=5);
 
 			//mount overlap cutoff
 			rotate([0,0,180])_hollowing([mount_total_lng-mount_overlap,-xtra/2,-xtra/2], length=mount_overlap+xtra, width=mount_width+xtra*2, height=height/2+xtra); 
 			//mount assembly holes
-			rotate([180,0,0])mount_hole([mount_bolt_dist,0,-height/2-xtra/4], dia=4, length=height+xtra, nut_len=5,variant=NUT);
+			mount_hole([mount_bolt_dist,0,height/2+xtra/2], dia=4, length=height+xtra, cap_len=15,variant=CAP);
 
 		}
 		}
@@ -455,6 +470,11 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		else if (side == RIGHT)
 		{	mirror([1,0,0])translate(pos)_holder();
 		}
+	}
+
+	module mount_mid(mount_length=50, mount_overlap=15, mount_bolt_dia=4, mount_width=23.0002)
+	{
+
 	}
 
 	module platform_adjuster(pos=[0,0,0], length=30, width=10, height=8, bolt_dia=4, base_width=10, base_length=35, mount_pos=[55,-25],side=LEFT)
@@ -500,17 +520,17 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	color(MECHA_COLOR)
 	{
 		
-		linear_bearing_holders([srods_dist/2,10,2],mount_length=srods_dist/4,mount_overlap=mount_overlap);
-		linear_bearing_holders([srods_dist/2,10,2],mount_length=srods_dist/4, side=RIGHT);
+		linear_bearing_holders([srods_dist/2,10,2],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
+		linear_bearing_holders([srods_dist/2,10,2],mount_length=linear_bearings_mount_length, side=RIGHT);
 
 			
 		center_block([0,0,0],mount_length=srods_dist/4,mount_overlap=mount_overlap);
 	//	for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
 
-		 /*platform_adjuster([92,-235,40]);
+		 platform_adjuster([92,-235,40]);
 		 platform_adjuster([-92,-235,40], side=RIGHT);
 		mirror([0,1,0] )platform_adjuster([92,50,40]);
-		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);*/
+		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);
 
 
 		
@@ -923,7 +943,7 @@ echo(block_width);
 
 				//extra, for mounting
 				for(j= [-1,1])
-				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist]) rotate([-90,0,0]) mount_hole(length=block_length+xtra, variant=NUT);
+				translate([0,(block_length+xtra)/2-bearing_dia/2-walls_thickness,j*payload_holes_dist]) rotate([-90,0,0]) mount_hole(length=block_length+xtra, variant=NUT,nut_len=10);
 			}
 		}
 
@@ -1265,12 +1285,18 @@ module belt(pos=[0,0,0], height=6, length=405, pulley_dia=20, thickness=1.5)
 
 
 ///////////////////UTILITIES
-module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=10, nut_len=10,variant=BOTH)//pos it that of center
+module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=NAN, nut_len=NAN,variant=BOTH)//pos it that of center
 {
 		capRad = METRIC_NUT_AC_WIDTHS[dia]/2 + tolerance; 
 		nutRad=METRIC_NUT_AC_WIDTHS[dia]/2+tolerance; 
 
+		cap_len_default = METRIC_NUT_THICKNESS[dia]+tolerance; 
+		nut_len_default =METRIC_NUT_AC_WIDTHS[dia];
+
+
 		cap_pos = length/2-cap_len;
+		cap_pos_default=  length/2-cap_len_default;
+
 		nut_pos = -length/2;
 
 		translate(pos)
@@ -1279,17 +1305,45 @@ module mount_hole(pos=[0,0,0], dia=4, length=30, cap_len=10, nut_len=10,variant=
 
 			if (variant == CAP) 
 			{
-				translate([0,0,cap_pos])cylinder(r=capRad,h=cap_len);
+				//hack, because openscad has no variables
+				if (cap_len == NAN)
+				{
+					translate([0,0,cap_pos_default])cylinder(r=capRad,h=cap_len_default);
+				}
+				else
+				{
+					translate([0,0,cap_pos])cylinder(r=capRad,h=cap_len);
+				}
 			}
 			else if(variant == NUT) 
 			{
-				echo("utu");
-				translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
+				if(nut_len==NAN)
+				{
+					translate([0,0,nut_pos]) cylinder(r=capRad,h=nut_len_default, $fn=6);
+				}
+				else
+				{
+					translate([0,0,nut_pos]) cylinder(r=capRad,h=nut_len, $fn=6);
+				}
 			}
 			else
 			{
-				translate([0,0,cap_pos]) cylinder(r=capRad,h=cap_len);
-				translate([0,0,nut_pos]) cylinder(r=capRad,h=cap_len, $fn=6);
+				if (cap_len == NAN)
+				{
+					translate([0,0,cap_pos_default])cylinder(r=capRad,h=cap_len_default);
+				}
+				else
+				{
+					translate([0,0,cap_pos])cylinder(r=capRad,h=cap_len);
+				}
+				if(nut_len==NAN)
+				{
+					translate([0,0,nut_pos]) cylinder(r=capRad,h=nut_len_default, $fn=6);
+				}
+				else
+				{
+					translate([0,0,nut_pos]) cylinder(r=capRad,h=nut_len, $fn=6);
+				}
 			}	
 		}
 }
