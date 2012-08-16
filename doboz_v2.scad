@@ -26,6 +26,7 @@ include <MCAD/nuts_and_bolts.scad>
 //TODO: cleanup/refactor all elements-->DONE
 //TODO: improve mounting arms-->DONE
 //TODO: fix nut hole cap/nut heights (should default to actual nut neight/ cap height)-->DONE
+//TODO : fix mounting sections assembly
 ////////////GENERAL
 //TODO: decide on width vs length structure
 
@@ -411,23 +412,22 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	module linear_bearing_holders(pos=[0,0,0], mount_length=50, mount_overlap=15, mount_bolt_dia=4, mount_width=23.0002, side=LEFT)
 	{
 		height= bearing_length*2;
-		arm_holder_length=50;
+		arm_holder_length=25;
 		arm_holder_width=arm_thickness+2*walls_thickness+2;
 		//arm_holder_width= bearing_dia+walls_thickness*2;
+		arm_width_extra=0.5;
 		arm_length =260;
 
 		mount_total_lng=mount_length+mount_overlap/2;
 		mount_bolt_dist=-mount_total_lng+mount_width/4;
-		
-		arm_mount_hole_pos=0;
 
+		bearing_holder_dia=(bearing_dia/2+walls_thickness);
 
 		module _holder()
 		{
 		difference()
 		{
 			% translate([-arm_thickness/2,-arm_length-walls_thickness*3,-xtra/2])  cube([arm_thickness,arm_length,height]);
-			
 		 	union()
 			{
 				//arm holder
@@ -435,7 +435,7 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 				{
 					hull()
 					{
-						translate([0,-arm_holder_length])	square([arm_holder_width,0.01],center=true);
+						translate([0,-arm_holder_length-bearing_holder_dia])	square([arm_holder_width,0.01],center=true);
 						translate([0,0]) circle(r=bearing_dia/2+walls_thickness); 
 					}
 				}
@@ -444,15 +444,15 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			}
 
 			//arm notches
-			translate([-arm_thickness/2,-arm_holder_length-walls_thickness*3,-xtra/2])cube([arm_thickness,arm_holder_length,height+xtra]);
+			translate([-arm_thickness/2-arm_width_extra/2,-arm_holder_length-walls_thickness*3,-xtra/2])cube([arm_thickness+arm_width_extra,arm_holder_length+walls_thickness*3,height+xtra]);
 			//arm additional cut off
 			rotate([90,180,90])_hollowing([mount_width/2,-xtra/2,-arm_holder_width], length=40, width=height, height=arm_holder_width*2+xtra); 
 			//bearings hole
-		 	rotate([0,90,0])bearing_retainer_hole([-height/2,0,0],height);//cylinder(r=bearing_dia/2, h=height+xtra,center=true);
+		 	rotate([0,90,0])bearing_retainer_hole([-height/2,0,0],height);
 			
 			//arm mount holes
-			rotate([0,90,0])mount_hole([-height+height/4, -42,0], dia=4, length=arm_holder_width*1.5+xtra, nut_len=5, cap_len=5);
-			rotate([0,90,0])mount_hole([-height+height/4,-22,0], dia=4, length=arm_holder_width*1.6+xtra, nut_len=5, cap_len=5);
+			rotate([0,90,0])mount_hole([-height+height/4,-bearing_holder_dia -arm_holder_width/3+1,0], dia=4, length=arm_holder_width*1.5+xtra, nut_len=5, cap_len=5);
+			rotate([0,90,0])mount_hole([-height+height/4,-bearing_holder_dia -arm_holder_width-3,0], dia=4, length=arm_holder_width*1.6+xtra, nut_len=5, cap_len=5);
 
 			//mount overlap cutoff
 			rotate([0,0,180])_hollowing([mount_total_lng-mount_overlap,-xtra/2,-xtra/2], length=mount_overlap+xtra, width=mount_width+xtra*2, height=height/2+xtra); 
@@ -520,19 +520,20 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	color(MECHA_COLOR)
 	{
 		
-		linear_bearing_holders([srods_dist/2,10,2],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
-		linear_bearing_holders([srods_dist/2,10,2],mount_length=linear_bearings_mount_length, side=RIGHT);
+		//mirror([0,0,1])
+		linear_bearing_holders([srods_dist/2,0,0],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
+		//mirror([0,0,1])
+		linear_bearing_holders([srods_dist/2,0,0],mount_length=linear_bearings_mount_length, side=RIGHT);
 
 			
 		center_block([0,0,0],mount_length=srods_dist/4,mount_overlap=mount_overlap);
 	//	for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
 
-		 platform_adjuster([92,-235,40]);
+		/* platform_adjuster([92,-235,40]);
 		 platform_adjuster([-92,-235,40], side=RIGHT);
 		mirror([0,1,0] )platform_adjuster([92,50,40]);
 		mirror([0,1,0]) platform_adjuster([-92,50,40], side=RIGHT);
-
-
+		*/
 		
 	}
 
