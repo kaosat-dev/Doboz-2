@@ -26,7 +26,7 @@ include <MCAD/nuts_and_bolts.scad>
 //TODO: cleanup/refactor all elements-->DONE
 //TODO: improve mounting arms-->DONE
 //TODO: fix nut hole cap/nut heights (should default to actual nut neight/ cap height)-->DONE
-//TODO : fix mounting sections assembly
+//TODO : fix mounting sections assembly IT IS ALLL WRONG !! only amount of ok overlap in the current version can be 23.0003 , the width of the blocks-->DONE
 ////////////GENERAL
 //TODO: decide on width vs length structure
 
@@ -308,9 +308,9 @@ module doboz()
 module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_rod_dia=8, s_rods_dia=8, srods_dist=180, bearing_dia=15, bearing_length=24, bearing_id=9,walls_thickness=4)
 {
 	t_rod_height=30;
-	t_rod_dia_extra=0.5;
+	t_rod_dia_extra=0.8;
 	arm_thickness=5.05;
-	mount_overlap=10;
+	mount_overlap=13;//23.0002;
 	real_center=-z_platform_length/2-15;
 
 	linear_bearings_mount_length=20;
@@ -333,14 +333,27 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	module _hollowing(pos=[0,0,0], length=20, width=10, height=20 )
 		{
 			translate(pos)
-			
 			linear_extrude(height =height)
 			{
 				hull()
 				{
 					translate([length,0])	square([0.01,width],center=true);
 					translate([width/2,0])circle(r=width/2); 
-					//square([0.01,width],center=true);
+	
+				}
+			}
+			translate(pos)translate([width/2,0,0]) cylinder(r=1 , h=100,center=true);
+			
+		}
+	module _hollowing2(pos=[0,0,0], length=20, width=10, height=20 )
+		{
+			translate(pos)
+			linear_extrude(height =height)
+			{
+				hull()
+				{
+					translate([length,0])	square([0.01,,width],center=true);
+					translate([0,0])	square([0.01,width],center=true);
 				}
 			}
 			
@@ -385,12 +398,10 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		module _half()
 		{
 			difference()
-		{
-			union()
 			{
-				//mount arm
-				rotate([0,0,180])_hollowing([-mount_total_lng,0,0], length=mount_total_lng, width=od, height=height);
-			}
+
+			rotate([0,0,180])_hollowing([-mount_total_lng,0,0], length=mount_total_lng, width=od, height=height);
+		
 			_nut_hole([0,0,height/2]);
 			//mount assembly holes
 			rotate([180,0,0])mount_hole([mount_bolt_dist,0,-height/2+xtra/4], dia=4, length=height+xtra, cap_len=5,variant=CAP);
@@ -398,12 +409,82 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			//inner holes to make it all lighter, easier to print
 			_hollowing([od/2,0,-xtra/2], length=hollowing_lng,height=height+xtra);
 			//overlap cut off
-			_hollowing([mount_total_lng-mount_overlap,-xtra/2,height/2], length=mount_overlap+xtra, width=od+xtra*2, height=height/2+xtra); 
-		}
+			rotate([0,0,0])_hollowing([mount_total_lng-mount_overlap,-xtra/2,height/2], length=mount_overlap+xtra, width=od+xtra*2, height=height/2+xtra); 
+			}
 		}
 		translate(pos)
 		_half();
 		mirror([1,0,0]) _half();
+
+		//%translate([0,0,top_bottom_thickness])  cylinder(r=nutRadius, h=nutHeight, $fn=6);
+		//translate([0,0,nutHeight+spring_height+top_bottom_thickness]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
+	}
+
+	module center_block2(pos=[0,0,0],spring_height=15, top_bottom_thickness=10, mount_length=50, mount_overlap=15, mount_bolt_dia=4)
+	{
+		nutRadius = METRIC_NUT_AC_WIDTHS[t_rod_dia]/2+tolerance;
+		nutHeight = METRIC_NUT_THICKNESS[t_rod_dia]+tolerance;
+		
+		inner_height=nutHeight*2+spring_height;
+		height=inner_height+top_bottom_thickness*2;
+		//just a test
+		height= bearing_length*2;
+		od = nutRadius*2 + walls_thickness*2;
+		
+		mount_width=od;
+		mount_total_lng=mount_length+mount_overlap/2;
+		mount_bolt_dist=mount_total_lng-mount_overlap/2;
+		hollowing_lng= mount_bolt_dist-mount_bolt_dia/2-od/2-walls_thickness;
+
+		echo("center width", od, "height",height, "length",mount_total_lng);
+
+		module _nut_hole(pos=[0,0,0])
+		{
+			translate(pos)
+			{
+			//central hole
+			translate([0,0, -xtra/2])  cylinder(r=t_rod_dia/2+t_rod_dia_extra, h=height+top_bottom_thickness*2+xtra);
+			translate([0,0,top_bottom_thickness])
+			{
+			//nut emplacement	
+				
+				 cylinder(r=nutRadius, h=inner_height+xtra, $fn=6);
+			
+			//back cut off
+			translate([-nutRadius,0,0]) cube([nutRadius*2,nutRadius*2+walls_thickness,inner_height+xtra]);	
+			}
+			}
+		}
+
+		module _half()
+		{
+			difference()
+			{
+				
+			rotate([0,0,180])_hollowing2([-mount_total_lng,0,0], length=mount_total_lng, width=od, height=height);
+			//rotate([0,0,180])_hollowing([-mount_total_lng,0,0], length=mount_total_lng, width=od, height=height);
+		
+			_nut_hole();
+			//mount assembly holes
+			rotate([180,0,0])mount_hole([mount_bolt_dist,0,-height/2+xtra/4], dia=4, length=height+xtra, cap_len=5,variant=CAP);
+			
+			
+			//overlap cut off
+			_hollowing2([mount_total_lng-mount_overlap,-xtra/2,height/2], length=mount_overlap+xtra, width=od+xtra*2, height=height/2+xtra); 
+			
+
+			//////////test cut off
+			//bottom
+			//translate([-xtra/2,-od/2-xtra/2,-xtra/2])cube([mount_total_lng+xtra,od+xtra,10+nutHeight+xtra]);
+			//top
+			//translate([-xtra/2,-od/2-xtra/2,10+nutHeight])cube([mount_total_lng+xtra,od+xtra,height-10-nutHeight+xtra]);
+			}
+		}
+		translate(pos)
+		{
+		_half();
+		mirror([1,0,0]) _half();
+		}
 
 		//%translate([0,0,top_bottom_thickness])  cylinder(r=nutRadius, h=nutHeight, $fn=6);
 		//translate([0,0,nutHeight+spring_height+top_bottom_thickness]) %cylinder(r=nutRadius, h=nutHeight, $fn=6);
@@ -419,7 +500,7 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 		arm_length =260;
 
 		mount_total_lng=mount_length+mount_overlap/2;
-		mount_bolt_dist=-mount_total_lng+mount_width/4;
+		mount_bolt_dist=-mount_total_lng+mount_overlap/2;
 
 		bearing_holder_dia=(bearing_dia/2+walls_thickness);
 
@@ -440,7 +521,7 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 					}
 				}
 				//mount stuff
-				_hollowing([-mount_total_lng,0,0], length=mount_total_lng, width=mount_width, height=height);
+				_hollowing2([-mount_total_lng,0,0], length=mount_total_lng, width=mount_width, height=height);
 			}
 
 			//arm notches
@@ -455,7 +536,7 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 			rotate([0,90,0])mount_hole([-height+height/4,-bearing_holder_dia -arm_holder_width-3,0], dia=4, length=arm_holder_width*1.6+xtra, nut_len=5, cap_len=5);
 
 			//mount overlap cutoff
-			rotate([0,0,180])_hollowing([mount_total_lng-mount_overlap,-xtra/2,-xtra/2], length=mount_overlap+xtra, width=mount_width+xtra*2, height=height/2+xtra); 
+			rotate([0,0,180])_hollowing2([mount_total_lng-mount_overlap,-xtra/2,-xtra/2], length=mount_overlap+xtra, width=mount_width+xtra*2, height=height/2+xtra); 
 			//mount assembly holes
 			mount_hole([mount_bolt_dist,0,height/2+xtra/2], dia=4, length=height+xtra, cap_len=15,variant=CAP);
 
@@ -520,13 +601,14 @@ module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_r
 	color(MECHA_COLOR)
 	{
 		
-		//mirror([0,0,1])
+		mirror([0,0,1]) 
 		linear_bearing_holders([srods_dist/2,0,0],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
 		//mirror([0,0,1])
-		linear_bearing_holders([srods_dist/2,0,0],mount_length=linear_bearings_mount_length, side=RIGHT);
+		//linear_bearing_holders([srods_dist/2,0,0],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap, side=RIGHT);
 
 			
-		center_block([0,0,0],mount_length=srods_dist/4,mount_overlap=mount_overlap);
+		//rotate([90,0,0])
+		//center_block2([0,0,0],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
 	//	for(i= [-1,1]) for(j= [0,-1]) mirror([0,0,j]) sr_holders([i*srods_dist/2,0,j*-50-220]);
 
 		/* platform_adjuster([92,-235,40]);
