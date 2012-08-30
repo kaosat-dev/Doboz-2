@@ -142,6 +142,7 @@ z_platform_holder();
 
  //z_end();
 
+
 ///////////////////////////////
 // OpenSCAD SCRIPT
 ////////////////////////////////
@@ -895,6 +896,39 @@ echo("prout", center_offset);
 		}
 	}
 
+	module thumbscrew(pos=[0,0,0],rot=[0,0,0], nb_teeth=5, teeth_min_dia=4, teeth_max_dia=6, teeth_length=6, teeth_offset=-2, center_dia=12,bolt_dia=4, thickness=4)
+	{
+		module _tooth(pos=[0,0,0], rot=[0,0,0])
+		{
+			rotate(rot)
+			translate(pos)
+			linear_extrude(height =thickness)
+			{
+				hull()
+				{
+					translate([0,teeth_length]) circle(r=teeth_min_dia/2);
+					translate([0,teeth_length/1.5]) circle(r=teeth_max_dia/2); 	
+					translate([0,0]) circle(r=teeth_min_dia/2);		
+				}
+			}
+		}
+
+		translate(pos)
+		rotate(rot)
+		{
+			difference()
+			{
+				union()
+				{
+					for(i= [0:nb_teeth])
+					_tooth([0,center_dia/2+teeth_offset,0],[0,0,i*(360/nb_teeth)]);
+					cylinder(r=center_dia/2,h=thickness);
+				}
+				mount_hole([0,0,2], dia=bolt_dia, length=thickness+xtra,nut_len=2,variant=NUT);
+			}
+		}
+	}
+
 	color(MECHA_COLOR)
 	{
 		
@@ -920,8 +954,9 @@ echo("prout", center_offset);
 		% platform_adjuster([-95,-260,48], side=RIGHT);
 		%mirror([0,1,0] )platform_adjuster([93,35,48]);
 		%mirror([0,1,0]) platform_adjuster([-93,35,48], side=RIGHT);
-		
-		
+
+
+		mirror([0,0,1]) thumbscrew();
 	}
 
 }
@@ -987,34 +1022,6 @@ module foot(pos=[0,0,0] ,element_width=45, element_thickness=5, vertical_element
 	
 }
 
-module y_end(pos=[0,0,0], rod_dia=8, width=48, length=8, height=25, holder_length=25, holder_height=5,  holder_length=12,walls_thickness=3, end_fill_thickness =1)
-{
-	mount_bolt_dia=4;
-	mount_bolt_x_dist=35;
-	mount_bolt_z_dist=18;
-
-	extra_hole_offset= width/2-11;
-
-	
-
-	color(MECHA_COLOR)
-	translate(pos)
-	difference()
-	{
-		union()
-		{
-			translate([0,-length/2,0])cube([width,length,height],center=true);
-		 	translate([0,-length,0]) rotate([90,0,0])cylinder(r=rod_dia/2+walls_thickness, h=holder_length);
-		}
-		translate([0,-end_fill_thickness+xtra/2,0]) rotate([90,0,0])  cylinder(r=rod_dia/2, h=length+holder_length-end_fill_thickness+xtra);
-
-		translate([-extra_hole_offset,0+xtra/2,height/2-13.2]) rotate([90,0,0])  cylinder(r=2, h=length+xtra);
-		
-		for(i= [1]) for(j= [-1,1]) 
-		translate([mount_bolt_x_dist/2*i,xtra/2,mount_bolt_z_dist/2*j]) rotate([90,0,0])cylinder(r=mount_bolt_dia/2, h=length+xtra);
-		
-	}
-}
 
 module y_end2(pos=[0,0,0], rod_dia=8, width=48, length=6, height=25, holder_length=25, holder_height=5,  holder_length=8,walls_thickness=3, end_fill_thickness =1)
 {
