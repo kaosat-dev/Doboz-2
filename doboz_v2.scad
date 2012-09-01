@@ -128,7 +128,7 @@ STRUCT_COLOR =[ 0.95, 0.95, 0.95];
 
 
 
-z_platform_holder();
+//z_platform_holder();
 //%rotate([-90,0,0])y_end();
 //rotate([-90,0,0])y_end2();
 
@@ -142,7 +142,7 @@ z_platform_holder();
 
  //z_end();
 
-
+rotate([-90,0,0]) pen_holder();
 ///////////////////////////////
 // OpenSCAD SCRIPT
 ////////////////////////////////
@@ -306,6 +306,63 @@ module doboz()
 	rotate([0,0,-90]) mirror([0,i-1,0]) foot();
 
 	
+}
+
+
+module pen_holder(pos=[0,0,0], rot=[0,0,0],id=12.3, arm_thickness=2.5, base_width=24.4,base_thickness=5, base_mount_bolt_dia=4, mount_dia=3, length=15, cut_size=8.5)
+{
+	
+	cap_len_default = METRIC_NUT_THICKNESS[base_mount_bolt_dia]+tolerance+2; 
+	mount_bolt_len = base_thickness+arm_thickness;
+
+	mount_block_offset=2.5;
+
+	cut_length=mount_block_offset+id/2+5;
+
+	bla=mount_block_offset+id/2;
+
+	mount_od=9.2;
+	cap_len_m_od=METRIC_NUT_THICKNESS[mount_dia]+tolerance; 
+	nut_len_m_od=METRIC_NUT_AC_WIDTHS[mount_dia]; 
+
+	mount_width=2.5;
+
+
+	r_cut_size =  METRIC_NUT_AC_WIDTHS[base_mount_bolt_dia] + tolerance; 
+	echo(r_cut_size);
+
+	translate(pos)
+	rotate(rot)
+	color(MECHA_COLOR)
+	difference()
+	{
+		union()
+		{
+			cylinder(r=id/2+arm_thickness,h=length);
+			translate([-base_width/2,id/2,0]) cube([base_width,base_thickness,length]);
+
+
+			translate([cut_size/2,-id/2-arm_thickness,0]) cube([arm_thickness,id/2+arm_thickness*2,length]);
+			translate([-cut_size/2-arm_thickness,-id/2-arm_thickness,0]) cube([arm_thickness,id/2+arm_thickness*2,length]);
+
+			
+			translate([cut_size/2,-bla,length/2-mount_od/2]) cube([mount_width,id,mount_od]);
+			translate([-cut_size/2-mount_width,-bla,length/2-mount_od/2]) cube([mount_width,id,mount_od]);
+
+			rotate([90,0,90])  rotate([0,0,90]) mount_hole([length/2,id/2+mount_block_offset,cut_size/2+mount_width/2], dia=mount_dia+2, length=mount_width,variant=CAP, cap_len=mount_width);
+			rotate([90,0,90])  rotate([0,0,90]) mount_hole([length/2,id/2+mount_block_offset,-cut_size/2-mount_width/2], dia=mount_dia+2, length=mount_width,variant=NUT, nut_len=mount_width);
+			
+		}
+		translate([0,0,-xtra/2]) cylinder(r=id/2,h=length+xtra);
+		translate([-cut_size/2,-cut_length,0-xtra/2])cube([cut_size, cut_length,length+xtra+10]);
+
+		//base mount
+		rotate([90,0,0])mount_hole([0,length/2,-id/2-mount_bolt_len/2+xtra/2+2], dia=base_mount_bolt_dia, length=mount_bolt_len,cap_len=cap_len_default ,variant=CAP);
+
+		rotate([90,0,90])   rotate([0,0,90]) mount_hole([length/2,id/2+mount_block_offset,0], dia=mount_dia, length=cut_size+2*mount_width+xtra,nut_len=mount_width/2,cap_len=mount_width/2);
+
+		
+	}
 }
 
 module z_platform_holder(width=100, len=300, platform_with=220, arms_with=8, t_rod_dia=8, s_rods_dia=8, srods_dist=200, bearing_dia=15, bearing_length=24, bearing_id=9,walls_thickness=4)
@@ -589,13 +646,10 @@ echo("prout", center_offset);
 				{
 					//nut emplacement	
 					 cylinder(r=nutRadius, h=nutHeight+nut_height_adjuster, $fn=6);
-			
 				}
-			
 				//back cut off
 				translate([-nutRadius,0,0]) cube([nutRadius*2,nutRadius*2+walls_thickness,nutHeight+nut_height_adjuster]);	
 			}
-			
 		}
 
 		module _body(pos=[0,0,0], width=od, arms_width=walls_thickness, height=height )
@@ -947,7 +1001,7 @@ echo("prout", center_offset);
 		//center_block([0,0,-48],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
 
 		//rotate([90,0,0]) 
-		center_block3([0,-3,-48],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
+		%center_block3([0,-3,-48],mount_length=linear_bearings_mount_length,mount_overlap=mount_overlap);
 	
 		//mirror([0,0,1])  platform_adjuster([0,0,0], side=RIGHT);
 		%platform_adjuster([93,-260,48]);
@@ -956,7 +1010,7 @@ echo("prout", center_offset);
 		%mirror([0,1,0]) platform_adjuster([-93,35,48], side=RIGHT);
 
 
-		mirror([0,0,1]) thumbscrew();
+		mirror([0,0,1])thumbscrew();// thumbscrew([123,-265,-40]);
 	}
 
 }
