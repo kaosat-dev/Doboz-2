@@ -22,11 +22,11 @@ githubiverse:
     ## The names of directories where any images, source and stl files associated with the project can be found.
     img_dir: img
     stl_dir: stl
-    src_dir: 
+    src_dir: src
 
     ## The headline image
-    lead_image: none.jpg
-    show_lead_image: false
+    lead_image: doboz_v0.1.jpg
+    show_lead_image: true
 
     ## Optional. When uncommented appends the content of the file defined here to the project description.  Any text in index.md, after the yaml header, will be shown first.
     ## WARNING: since the github outage on 12th Sep. this feature does not currently work.
